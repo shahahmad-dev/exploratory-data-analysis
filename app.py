@@ -1,20 +1,20 @@
+# app.py
 import streamlit as st
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import io
 
 # ----------------- PAGE CONFIG -----------------
 st.set_page_config(
-    page_title="EDA on Tips Dataset",
+    page_title="Tips Dataset EDA",
     page_icon="📊",
     layout="wide"
 )
 
-# ----------------- TITLE -----------------
-st.markdown("<h1 style='text-align: center; color: #4CAF50;'>📊 EDA on Tips Dataset</h1>", unsafe_allow_html=True)
-st.write("Welcome to an **interactive EDA** (Exploratory Data Analysis) dashboard built using Streamlit. "
-         "This app lets you explore the classic Seaborn **Tips Dataset** in an engaging way.")
+# ----------------- HEADER -----------------
+st.title("📊 Exploratory Data Analysis — Tips Dataset")
+st.markdown("**By: Shah Ahmad — Data Scientist**")
+st.caption("This project was built with the assistance of ChatGPT")
 
 # ----------------- LOAD DATA -----------------
 @st.cache_data
@@ -23,81 +23,53 @@ def load_data():
 
 df = load_data()
 
-# ----------------- SIDEBAR -----------------
-st.sidebar.header("🔍 Navigation")
-section = st.sidebar.radio("Go to", ["About Dataset", "Data Preview", "EDA Summary", "Visualizations", "Correlation Heatmap"])
+# ----------------- DATASET INFO -----------------
+st.subheader("📄 Dataset Preview")
+st.write(df.head())
 
-st.sidebar.subheader("⚙️ Filter Data")
-days = st.sidebar.multiselect("Select Days", options=df['day'].unique(), default=df['day'].unique())
-sex_filter = st.sidebar.multiselect("Select Gender", options=df['sex'].unique(), default=df['sex'].unique())
-df_filtered = df[(df['day'].isin(days)) & (df['sex'].isin(sex_filter))]
+# Show dataset shape
+st.markdown(f"**Rows:** {df.shape[0]} | **Columns:** {df.shape[1]}")
 
-# ----------------- ABOUT DATASET -----------------
-if section == "About Dataset":
-    st.subheader("📌 About Dataset")
-    st.write("""
-    The **Tips dataset** contains information about tips received by restaurant waiters.  
-    It is commonly used for practicing **data visualization & statistical analysis**.
+# ----------------- DESCRIPTIVE STATS -----------------
+st.subheader("📈 Descriptive Statistics")
+st.write(df.describe())
 
-    **Features:**
-    - `total_bill`: Total bill in USD.
-    - `tip`: Tip given to the waiter in USD.
-    - `sex`: Gender of the person paying the bill.
-    - `smoker`: Whether the person was a smoker.
-    - `day`: Day of the week.
-    - `time`: Lunch or Dinner.
-    - `size`: Number of people at the table.
-    """)
+# ----------------- DATA VISUALIZATIONS -----------------
+st.subheader("📊 Data Visualizations")
 
-# ----------------- DATA PREVIEW -----------------
-elif section == "Data Preview":
-    st.subheader("📋 Data Preview")
-    st.dataframe(df_filtered)
+# Sidebar filters
+st.sidebar.header("Filter Options")
+day_filter = st.sidebar.multiselect("Select Day(s):", df['day'].unique(), default=df['day'].unique())
+sex_filter = st.sidebar.multiselect("Select Gender(s):", df['sex'].unique(), default=df['sex'].unique())
 
-    buffer = io.StringIO()
-    df_filtered.info(buf=buffer)
-    st.text("**Dataset Info:**")
-    st.text(buffer.getvalue())
+filtered_df = df[(df['day'].isin(day_filter)) & (df['sex'].isin(sex_filter))]
 
-# ----------------- EDA SUMMARY -----------------
-elif section == "EDA Summary":
-    st.subheader("📈 EDA Summary Statistics")
-    st.write(df_filtered.describe())
+# Total Bill vs Tip Scatterplot
+st.markdown("### 💵 Total Bill vs Tip")
+fig, ax = plt.subplots()
+sns.scatterplot(x="total_bill", y="tip", hue="sex", size="size", data=filtered_df, ax=ax)
+st.pyplot(fig)
 
-# ----------------- VISUALIZATIONS -----------------
-elif section == "Visualizations":
-    st.subheader("📊 Visualizations")
+# Average Tip by Day
+st.markdown("### 📅 Average Tip by Day")
+fig, ax = plt.subplots()
+sns.barplot(x="day", y="tip", data=filtered_df, estimator="mean", ci=None, ax=ax)
+st.pyplot(fig)
 
-    col1, col2 = st.columns(2)
+# Correlation Heatmap
+st.markdown("### 🔥 Correlation Heatmap")
+fig, ax = plt.subplots()
+sns.heatmap(filtered_df.corr(numeric_only=True), annot=True, cmap="coolwarm", ax=ax)
+st.pyplot(fig)
 
-    with col1:
-        st.write("💰 **Total Bill Distribution**")
-        fig, ax = plt.subplots()
-        sns.histplot(df_filtered['total_bill'], kde=True, ax=ax, color='skyblue')
-        st.pyplot(fig)
-
-    with col2:
-        st.write("💵 **Tip Distribution**")
-        fig, ax = plt.subplots()
-        sns.histplot(df_filtered['tip'], kde=True, ax=ax, color='orange')
-        st.pyplot(fig)
-
-    st.write("🍽 **Average Tip by Day**")
-    fig, ax = plt.subplots()
-    sns.barplot(data=df_filtered, x='day', y='tip', ci=None, palette="viridis")
-    st.pyplot(fig)
-
-# ----------------- CORRELATION -----------------
-elif section == "Correlation Heatmap":
-    st.subheader("🔗 Correlation Heatmap")
-    fig, ax = plt.subplots(figsize=(8, 5))
-    sns.heatmap(df_filtered.corr(numeric_only=True), annot=True, cmap="coolwarm", ax=ax)
-    st.pyplot(fig)
+# ----------------- CONCLUSION -----------------
+st.subheader("📌 Insights")
+st.markdown("""
+- **Saturday & Sunday** tend to have higher total bills and tips — possibly due to weekend dining.
+- Male customers generally tip slightly more than females in this dataset.
+- Total bill has a **positive correlation** with tip amount.
+""")
 
 # ----------------- FOOTER -----------------
-st.markdown("<hr>", unsafe_allow_html=True)
-st.markdown(
-    "<p style='text-align: center; color: gray;'>"
-    "Created with ❤️ by a Data Scientist & AI Engineer</p>",
-    unsafe_allow_html=True
-)
+st.markdown("---")
+st.markdown("💡 *EDA helps us understand patterns, trends, and relationships in the data before building any model.*")
